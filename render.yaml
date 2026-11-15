@@ -1,0 +1,56 @@
+# Velaq on Render, free setup: one free web service for the API.
+# The databases live on Neon's free plan (Render's free Postgres is deleted after 30 days), and the
+# website is on Vercel's free plan. Deploys happen automatically after GitHub CI passes on main.
+#
+# Free services sleep after 15 minutes without visits and take about a minute to wake. Free services
+# can't run a pre-deploy step, so the database update runs at start-up instead; it is safe to repeat.
+#
+# Moving to paid later: set plan to 0.5c-512mb, move the migration into preDeployCommand, and add the
+# worker back when notifications need it.
+
+services:
+  - type: web
+    name: velaq-api
+    runtime: node
+    region: frankfurt
+    plan: free
+    branch: main
+    autoDeployTrigger: checksPass
+    buildFilter:
+      paths: ["apps/api/**", "packages/**", "pnpm-lock.yaml", "package.json", "render.yaml"]
+    buildCommand: npm install -g pnpm@9.15.9 && pnpm install --frozen-lockfile && pnpm exec turbo run build --filter=@velaq/api...
+    startCommand: node packages/db/dist/migrate.js identity personal && node apps/api/dist/main.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: PLANE
+        value: personal
+      # Neon connection strings, one per database (the owner role, used for migrations). The app itself
+      # connects as velaq_app, made from these with VELAQ_APP_PASSWORD.
+      - key: DATABASE_ADMIN_URL_IDENTITY
+        sync: false
+      - key: DATABASE_ADMIN_URL_PERSONAL
+        sync: false
+      # Password for the velaq_app database role. Generated once by Render; long enough for Neon's rules.
+      - key: VELAQ_APP_PASSWORD
+        generateValue: true
+      # Secret for hashing email codes. Generated once by Render.
+      - key: AUTH_SECRET
+        generateValue: true
+      # Shared with the website (Vercel) so the API can rate-limit per visitor. Copy it to Vercel too.
+      - key: WEB_API_KEY
+        generateValue: true
+      # Resend API key for sign-in emails, and the sender. Without your own domain, Resend only
+      # delivers to the email address you signed up to Resend with; use "Velaq <onboarding@resend.dev>".
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      # Claude API key for "Tailor for a job". Leave unset to keep AI off (it costs per use).
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: AI_MODEL
+        value: claude-haiku-5-5

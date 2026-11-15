@@ -1,0 +1,42 @@
+{
+  "name": "@velaq/db",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "migrate": "node --env-file-if-exists=../../.env dist/migrate.js",
+    "generate:business": "drizzle-kit generate --config drizzle.business.config.ts",
+    "generate:personal": "drizzle-kit generate --config drizzle.personal.config.ts",
+    "generate:identity": "drizzle-kit generate --config drizzle.identity.config.ts"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.2.12",
+    "@velaq/contracts": "workspace:*",
+    "drizzle-orm": "^0.45.4",
+    "pg": "^8.13.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "@types/pg": "^8.11.10",
+    "drizzle-kit": "^0.31.11",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.4"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./testing": {
+      "types": "./dist/testing.d.ts",
+      "default": "./dist/testing.js"
+    },
+    "./local": {
+      "types": "./dist/local.d.ts",
+      "default": "./dist/local.js"
+    }
+  }
+}

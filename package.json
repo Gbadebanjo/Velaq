@@ -1,0 +1,25 @@
+{
+  "name": "velaq",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@9.15.9",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "turbo run dev --filter=@velaq/web --filter=@velaq/api",
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "lint": "turbo run typecheck",
+    "dev:web": "pnpm --filter @velaq/web dev",
+    "dev:api": "pnpm --filter @velaq/api dev",
+    "dev:worker": "pnpm --filter @velaq/worker dev",
+    "db:generate": "pnpm --filter @velaq/db generate",
+    "db:migrate": "pnpm --filter @velaq/db build && pnpm --filter @velaq/db migrate"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.0",
+    "typescript": "^5.6.3"
+  }
+}

@@ -1,0 +1,2 @@
+ALTER TABLE "profiles" ADD COLUMN "cv_template" text DEFAULT 'classic' NOT NULL;--> statement-breakpoint
+ALTER TABLE "profiles" ADD CONSTRAINT "profiles_cv_template_ck" CHECK ("profiles"."cv_template" IN ('classic','modern','sidebar'));
