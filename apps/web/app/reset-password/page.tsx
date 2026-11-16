@@ -11,8 +11,9 @@ export default async function ResetPasswordPage({ searchParams }: { searchParams
   if (!email) redirect("/forgot-password");
   return (
     <AuthLayout
+      icon="key"
       title="Choose a new password"
-      intro={<p>If <strong>{email}</strong> has an account, we've sent it a 6-digit code. Setting a new password signs you out on every other device.</p>}
+      intro={<p>If <strong>{email}</strong> has an account, we've sent it a code. Setting a new password signs you out on your other devices.</p>}
       footer={<p><Link href="/sign-in">Back to sign in</Link></p>}
     >
       <ResetPasswordForm email={email} />

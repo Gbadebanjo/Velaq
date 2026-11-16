@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { type FormState, forgotPassword, resendCode, resetPassword, signIn, signUp, verifyEmail } from "./actions";
-import { CodeField, Field, FormMessage, LinkButton, PasswordField, Submit } from "./fields";
+import { CodeField, Field, FormMessage, PasswordField, ResendButton, Submit } from "./fields";
 
 const empty: FormState = {};
 
@@ -37,14 +37,36 @@ export function SignInForm({ next, notice }: { next: string; notice?: string }) 
   );
 }
 
+/** Shortcuts to the inbox for the big email providers, so nobody has to go looking for the code. */
+const INBOXES: [RegExp, string, string][] = [
+  [/@(gmail|googlemail)\.com$/i, "Open Gmail", "https://mail.google.com/mail/u/0/#inbox"],
+  [/@(outlook|hotmail|live|msn)\.[a-z.]+$/i, "Open Outlook", "https://outlook.live.com/mail/0/"],
+  [/@(yahoo|ymail)\.[a-z.]+$/i, "Open Yahoo Mail", "https://mail.yahoo.com/"],
+  [/@(icloud|me|mac)\.com$/i, "Open iCloud Mail", "https://www.icloud.com/mail"],
+];
+
 function ResendForm({ email, purpose }: { email: string; purpose: "verify_email" | "reset_password" }) {
   const [state, action] = useActionState(resendCode, empty);
+  // The first code was sent just before this page opened; each new one restarts the wait.
+  const [sentAt, setSentAt] = useState(() => Date.now());
+  useEffect(() => {
+    if (state.notice) setSentAt(Date.now());
+  }, [state]);
+  const inbox = INBOXES.find(([re]) => re.test(email));
   return (
     <form action={action} className="resend">
       <input type="hidden" name="email" value={email} />
       <input type="hidden" name="purpose" value={purpose} />
       <FormMessage message={state.message} notice={state.notice} />
-      <p>Didn't get it? Check spam, or <LinkButton pending="Sending…">send a new code</LinkButton>.</p>
+      <div className="resend-row">
+        {inbox ? (
+          <a className="btn ghost" href={inbox[2]} target="_blank" rel="noopener noreferrer">
+            {inbox[1]}
+          </a>
+        ) : null}
+        <ResendButton sentAt={sentAt} />
+      </div>
+      <p className="resend-note">Can't find it? Check your spam or promotions folder.</p>
     </form>
   );
 }
@@ -57,7 +79,7 @@ export function VerifyEmailForm({ email, next }: { email: string; next: string }
         <FormMessage message={state.message} />
         <input type="hidden" name="email" value={email} />
         <input type="hidden" name="next" value={next} />
-        <CodeField error={state.fields?.code} />
+        <CodeField error={state.fields?.code} failed={!!state.message} attempt={state} autoSubmit />
         <Submit pending="Checking…">Confirm email</Submit>
       </form>
       <ResendForm email={email} purpose="verify_email" />
@@ -83,7 +105,7 @@ export function ResetPasswordForm({ email }: { email: string }) {
       <form action={action} noValidate>
         <FormMessage message={state.message} />
         <input type="hidden" name="email" value={email} />
-        <CodeField error={state.fields?.code} />
+        <CodeField error={state.fields?.code} failed={!!state.message} attempt={state} />
         <PasswordField label="New password" name="password" autoComplete="new-password" hint="At least 12 characters." error={state.fields?.password} />
         <Submit pending="Saving…">Set new password</Submit>
       </form>

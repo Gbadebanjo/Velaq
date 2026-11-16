@@ -194,7 +194,6 @@ p { margin: 0; }
 .field-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
 @media (max-width: 420px) { .field-pair { grid-template-columns: 1fr; } }
 @media (prefers-color-scheme: dark) { .field-error, .form-error { color: #ff8a9d; } .field input[aria-invalid="true"] { border-color: #ff8a9d; } }
-.code-input { letter-spacing: 0.5em; font-size: 1.35rem !important; font-weight: 700 !important; font-variant-numeric: tabular-nums; max-width: 13rem; }
 .password-wrap { position: relative; }
 .password-wrap input { padding-right: 72px; }
 .password-toggle { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); min-height: 36px; padding: 0 12px; border: 0; border-radius: 8px; background: transparent; color: var(--velaq-blue-1); font: 600 0.88rem/1 var(--font); cursor: pointer; }
@@ -204,9 +203,6 @@ p { margin: 0; }
 .form-aside { font-size: 0.93rem; margin-top: -6px; }
 .btn.block { width: 100%; }
 .btn[aria-disabled="true"] { opacity: 0.7; cursor: progress; }
-.resend { margin-top: 20px !important; color: var(--muted); font-size: 0.93rem; gap: 10px !important; }
-.link-button { border: 0; background: none; padding: 0; color: var(--velaq-blue-1); font: 600 inherit/inherit var(--font); font-size: inherit; text-decoration: underline; cursor: pointer; }
-.link-button:disabled { color: var(--muted); cursor: progress; }
 
 /* ============================================================
    Motion and finish
@@ -878,3 +874,25 @@ ul.compare-text { padding-left: 18px; margin: 0; white-space: normal; display: g
 @media (prefers-color-scheme: dark) { .goal-chip.on_track, .goal-chip.reached { color: #6fe0c9; } .goal-chip.behind, .goal-chip.overdue { color: #ffcf7a; } }
 @media (prefers-reduced-motion: reduce) { .goal-ring .ring-fg { animation: none; } }
 @media (max-width: 420px) { .seg button { font-size: 0.82rem; padding: 4px 6px; white-space: nowrap; } }
+
+/* Code screens: six boxes for the emailed code */
+.auth-icon { display: inline-grid; place-items: center; width: 60px; height: 60px; margin-bottom: 18px; border-radius: 18px; color: #fff; background: linear-gradient(135deg, var(--velaq-blue-1), var(--velaq-green-2)); box-shadow: 0 14px 30px -14px rgba(18, 101, 252, 0.7); animation: icon-pop 0.6s 0.2s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
+@keyframes icon-pop { from { transform: scale(0.6) rotate(-8deg); opacity: 0; } }
+.otp-label { font-weight: 600; font-size: 0.95rem; margin-bottom: 10px; }
+.otp { display: grid; grid-template-columns: repeat(6, 1fr); gap: clamp(6px, 2vw, 10px); }
+.otp-box { width: 100%; aspect-ratio: 5 / 6; max-height: 76px; min-width: 0; padding: 0; text-align: center; font: 700 clamp(1.6rem, 7vw, 1.9rem) / 1 var(--font); font-variant-numeric: tabular-nums; color: var(--fg); background: var(--bg); border: 1.5px solid var(--line); border-radius: 14px; caret-color: var(--velaq-blue-1); transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s, background-color 0.15s; }
+/* Beats the general ".field input" style, which sets its own size, weight and padding. */
+.field .otp-box { font-size: clamp(1.6rem, 7vw, 1.9rem); font-weight: 700; padding: 0; height: auto; min-height: 0; }
+.otp-box:hover { border-color: #b8c6da; }
+.otp-box:focus { outline: none; border-color: var(--velaq-blue-1); box-shadow: 0 0 0 4px rgba(18, 101, 252, 0.16); transform: translateY(-2px); }
+.otp-box.filled { border-color: var(--velaq-blue-1); background: rgba(18, 101, 252, 0.05); }
+.otp-error .otp-box { border-color: #c4314b; background: rgba(196, 49, 75, 0.05); }
+.otp-shake { animation: otp-shake 0.42s cubic-bezier(0.36, 0.07, 0.19, 0.97); }
+@keyframes otp-shake { 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
+.resend { margin-top: 22px !important; gap: 10px !important; }
+.resend-row { display: flex; flex-wrap: wrap; gap: 10px; }
+.resend-row .btn { flex: 1 1 10rem; justify-content: center; }
+.resend-btn:disabled { color: var(--muted); cursor: default; font-variant-numeric: tabular-nums; }
+.resend-note { color: var(--muted); font-size: 0.88rem; }
+@media (prefers-reduced-motion: reduce) { .auth-icon, .otp-shake { animation: none; } .otp-box:focus { transform: none; } }
+@media (prefers-color-scheme: dark) { .otp-box:hover { border-color: #3a5170; } }

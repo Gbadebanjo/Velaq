@@ -11,9 +11,10 @@ export default async function VerifyEmailPage({ searchParams }: { searchParams: 
   if (!email) redirect("/sign-up");
   return (
     <AuthLayout
+      icon="mail"
       title="Check your email"
-      intro={<p>We sent a 6-digit code to <strong>{email}</strong>. Enter it below to confirm your email. It expires in 10 minutes.</p>}
-      footer={<p>Wrong email? <Link href="/sign-up">Start again</Link></p>}
+      intro={<p>We sent a code to <strong>{email}</strong>. It expires in 10 minutes.</p>}
+      footer={<p>Wrong email address? <Link href="/sign-up">Start again</Link></p>}
     >
       <VerifyEmailForm email={email} next={next ?? "/app"} />
     </AuthLayout>
