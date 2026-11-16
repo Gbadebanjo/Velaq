@@ -44,8 +44,30 @@ export class ResendMailer implements Mailer {
   }
 }
 
+const DEFAULT_FROM = "Velaq <no-reply@velaq.com>";
+
+/**
+ * Tidies the sender setting: hosting dashboards often keep quotes or spaces pasted around the value,
+ * which Resend rejects (422). Returns null when it still isn't "name@domain" or "Name <name@domain>".
+ */
+export function senderFrom(raw: string | undefined): string | null {
+  const v = (raw ?? "").trim().replace(/^(["'])(.*)\1$/, "$2").trim();
+  if (!v) return DEFAULT_FROM;
+  const address = /^[^\s<>@"]+@[^\s<>@"]+\.[^\s<>@"]+$/;
+  const named = /^([^<>"]+?)\s*<([^\s<>@"]+@[^\s<>@"]+\.[^\s<>@"]+)>$/.exec(v);
+  if (named) return `${named[1]!.trim()} <${named[2]}>`;
+  return address.test(v) ? v : null;
+}
+
 export function mailerFromEnv(env: NodeJS.ProcessEnv = process.env): Mailer {
-  if (env.RESEND_API_KEY) return new ResendMailer(env.RESEND_API_KEY, env.EMAIL_FROM ?? "Velaq <no-reply@velaq.com>");
+  if (env.RESEND_API_KEY) {
+    const from = senderFrom(env.EMAIL_FROM);
+    if (!from) {
+      // Loud at start-up so it's seen in the deploy log, not only when someone signs up.
+      console.error(`EMAIL_FROM is not a valid sender: use "you@yourdomain" or "Velaq <you@yourdomain>", with no quotes. Emails will fail until it's fixed.`);
+    }
+    return new ResendMailer(env.RESEND_API_KEY.trim(), from ?? (env.EMAIL_FROM ?? ""));
+  }
   if (env.NODE_ENV === "production") throw new Error("RESEND_API_KEY is required in production to send sign-in emails");
   return new ConsoleMailer();
 }

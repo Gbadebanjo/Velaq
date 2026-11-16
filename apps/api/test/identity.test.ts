@@ -12,7 +12,7 @@ import { BREACH_CHECKER, type BreachChecker } from "../src/identity/breach.js";
 import { requestMeta } from "../src/identity/identity.controller.js";
 import { IdentityController } from "../src/identity/identity.controller.js";
 import { IDENTITY_CONFIG, IDENTITY_DB, IdentityService } from "../src/identity/identity.service.js";
-import { MAILER, type Email, type Mailer, ResendMailer } from "../src/identity/mailer.js";
+import { MAILER, type Email, type Mailer, ResendMailer, senderFrom } from "../src/identity/mailer.js";
 
 class Inbox implements Mailer {
   sent: Email[] = [];
@@ -285,5 +285,19 @@ describe("when an email can't be sent", () => {
     } finally {
       globalThis.fetch = orig;
     }
+  });
+});
+
+describe("the sender setting", () => {
+  it("forgives quotes and spaces pasted around it, and spots values Resend would reject", () => {
+    expect(senderFrom("Velaq <no-reply@velaq.assureusclub.org>")).toBe("Velaq <no-reply@velaq.assureusclub.org>");
+    expect(senderFrom('  "Velaq <no-reply@velaq.assureusclub.org>"  ')).toBe("Velaq <no-reply@velaq.assureusclub.org>");
+    expect(senderFrom("'Velaq<no-reply@velaq.assureusclub.org>'")).toBe("Velaq <no-reply@velaq.assureusclub.org>");
+    expect(senderFrom("Velaq@resend.dev")).toBe("Velaq@resend.dev");
+    expect(senderFrom("")).toBe("Velaq <no-reply@velaq.com>");
+    expect(senderFrom(undefined)).toBe("Velaq <no-reply@velaq.com>");
+    expect(senderFrom("Velaq <no-reply@velaq.assureusclub.org")).toBeNull();
+    expect(senderFrom("Velaq no-reply@velaq.assureusclub.org")).toBeNull();
+    expect(senderFrom("no-reply")).toBeNull();
   });
 });

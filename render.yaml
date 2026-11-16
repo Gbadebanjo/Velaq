@@ -43,8 +43,9 @@ services:
       # Shared with the website (Vercel) so the API can rate-limit per visitor. Copy it to Vercel too.
       - key: WEB_API_KEY
         generateValue: true
-      # Resend API key for sign-in emails, and the sender. Without your own domain, Resend only
-      # delivers to the email address you signed up to Resend with; use "Velaq <onboarding@resend.dev>".
+      # Resend API key for sign-in emails, and the sender. The sender must be on a domain verified in
+      # Resend, e.g. Velaq <no-reply@mail.yourdomain.com> (no quotes). Any @resend.dev sender only
+      # delivers to the email address you signed up to Resend with.
       - key: RESEND_API_KEY
         sync: false
       - key: EMAIL_FROM
