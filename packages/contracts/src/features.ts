@@ -85,6 +85,6 @@ export const PERSONAL_FIRST_WAVE = [
 ] as const;
 
 /** Features released and switchable today. Everything else is registered but not yet released. */
-export const RELEASED_FEATURE_IDS: ReadonlySet<string> = new Set<string>(["PER-001", "PER-010", "PER-011", "PER-012"]);
+export const RELEASED_FEATURE_IDS: ReadonlySet<string> = new Set<string>(["PER-001", "PER-010", "PER-011", "PER-012", "PER-030"]);
 
 export const featureById = (id: string): FeatureDef | undefined => FEATURES.find((f) => f.id === id);

@@ -9,6 +9,8 @@ import { BudgetService } from "./money/budgets.js";
 import { BudgetsController } from "./money/budgets.controller.js";
 import { GoalService } from "./money/goals.js";
 import { GoalsController } from "./money/goals.controller.js";
+import { TasksController } from "./tasks/tasks.controller.js";
+import { TaskService } from "./tasks/tasks.service.js";
 import { MoneyController } from "./money/money.controller.js";
 import { MoneyService } from "./money/money.service.js";
 import { ProfileController } from "./profile/profile.controller.js";
@@ -36,9 +38,9 @@ const entitlementStore: NonNullable<ModuleMetadata["providers"]>[number] =
 @Module({
   imports: [IdentityModule.forPlane(plane), ...(plane === "personal" ? [SpaceModule] : [])],
   // Personal features. Each is registered only on the Personal API.
-  controllers: [AppController, ...(plane === "personal" ? [ProfileController, TailorController, MoneyController, BudgetsController, GoalsController] : [])],
+  controllers: [AppController, ...(plane === "personal" ? [ProfileController, TailorController, MoneyController, BudgetsController, GoalsController, TasksController] : [])],
   providers: [
-    ...(plane === "personal" ? [ProfileService, VersionService, MoneyService, BudgetService, GoalService] : []),
+    ...(plane === "personal" ? [ProfileService, VersionService, MoneyService, BudgetService, GoalService, TaskService] : []),
     // The AI gateway: null until ANTHROPIC_API_KEY is set, and AI features then say they aren't set up.
     { provide: AI_CLIENT, useFactory: () => aiFromEnv() },
     entitlementStore,

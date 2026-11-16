@@ -317,3 +317,51 @@ export const moneyGoalContributions = pgTable(
     index("money_goal_contrib_goal_idx").on(t.spaceId, t.goalId),
   ],
 );
+
+// ---- Tasks (PER-030) ---------------------------------------------------------------------------------
+// Personal to-dos. Tasks without a list sit in the Inbox. A repeating task, once done, makes its next
+// occurrence (repeat_of points back at the task it came from, so undoing can take it away again).
+
+export const taskLists = pgTable(
+  "task_lists",
+  {
+    id: uuid("id").primaryKey(),
+    spaceId: scopeColumn("space_id", () => spaces.id),
+    name: text("name").notNull(),
+    position: integer("position").notNull().default(0),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [check("task_lists_name_ck", sql`char_length(${t.name}) BETWEEN 1 AND 40`)],
+);
+
+export const tasks = pgTable(
+  "tasks",
+  {
+    id: uuid("id").primaryKey(),
+    spaceId: scopeColumn("space_id", () => spaces.id),
+    listId: uuid("list_id").references(() => taskLists.id),
+    title: text("title").notNull(),
+    notes: text("notes").notNull().default(""),
+    dueDate: date("due_date"),
+    /** 0 none, 1 low, 2 medium, 3 high. */
+    priority: integer("priority").notNull().default(0),
+    /** null, or daily | weekdays | weekly | monthly | yearly. */
+    repeat: text("repeat"),
+    /** A savings goal this task is for (a record link). */
+    goalId: uuid("goal_id").references(() => moneyGoals.id),
+    repeatOf: uuid("repeat_of").references((): AnyPgColumn => tasks.id),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    deleted: boolean("deleted").notNull().default(false),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    check("tasks_title_ck", sql`char_length(${t.title}) BETWEEN 1 AND 200`),
+    check("tasks_notes_ck", sql`char_length(${t.notes}) <= 2000`),
+    check("tasks_priority_ck", sql`${t.priority} BETWEEN 0 AND 3`),
+    check("tasks_repeat_ck", sql`${t.repeat} IS NULL OR ${t.repeat} IN ('daily','weekdays','weekly','monthly','yearly')`),
+    index("tasks_open_idx").on(t.spaceId, t.dueDate).where(sql`NOT ${t.deleted} AND ${t.completedAt} IS NULL`),
+    index("tasks_list_idx").on(t.spaceId, t.listId),
+  ],
+);

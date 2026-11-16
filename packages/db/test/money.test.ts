@@ -136,3 +136,23 @@ describe("Connection security", () => {
     expect(new URL(strictSsl("postgres://a:b@h/db?sslmode=disable")).searchParams.get("sslmode")).toBe("disable");
   });
 });
+
+describe("Tasks", () => {
+  const addTask = (space: string, values: Record<string, unknown>) =>
+    withSpace(db.app, space, (tx) =>
+      tx.query("INSERT INTO tasks (id, title, priority, repeat) VALUES ($1, $2, $3, $4)", [id(), values.title ?? "Pay rent", values.priority ?? 0, values.repeat ?? null]),
+    );
+
+  it("checks titles, priorities and repeats", async () => {
+    await addTask(ADA, {});
+    await expect(addTask(ADA, { title: "" })).rejects.toThrow(/tasks_title_ck/);
+    await expect(addTask(ADA, { priority: 4 })).rejects.toThrow(/tasks_priority_ck/);
+    await expect(addTask(ADA, { repeat: "hourly" })).rejects.toThrow(/tasks_repeat_ck/);
+  });
+
+  it("keeps each person's tasks and lists to themselves, and never lets the app delete a task", async () => {
+    const seen = await withSpace(db.app, TUNDE, (tx) => tx.query("SELECT (SELECT count(*) FROM tasks)::int AS t, (SELECT count(*) FROM task_lists)::int AS l"));
+    expect(seen.rows[0]).toEqual({ t: 0, l: 0 });
+    await expect(withSpace(db.app, ADA, (tx) => tx.query("DELETE FROM tasks"))).rejects.toThrow(/permission denied/);
+  });
+});
