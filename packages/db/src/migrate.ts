@@ -30,10 +30,20 @@ for (const plane of planes) {
     console.log(`${plane}: DATABASE_ADMIN_URL_${plane.toUpperCase()} not set, skipped`);
     continue;
   }
+  const appPassword = process.env.VELAQ_APP_PASSWORD?.trim();
+  // Never the value itself: only whether it's there, so a missing setting is easy to spot in deploy logs.
+  console.log(`${plane}: VELAQ_APP_PASSWORD ${appPassword ? `is set (${appPassword.length} characters)` : "is NOT set"}`);
+  // A hosted database must never get the development password (and Neon refuses it anyway).
+  const host = new URL(url).hostname;
+  if (!appPassword && !["localhost", "127.0.0.1", "::1"].includes(host)) {
+    throw new Error(
+      `VELAQ_APP_PASSWORD is not set. ${plane} is a hosted database (${host}), so the app's database user needs a strong password. ` +
+        "Add VELAQ_APP_PASSWORD to the service's environment (on Render, use Generate) and deploy again.",
+    );
+  }
   const client = new pg.Client({ connectionString: url });
   await client.connect();
   try {
-    const appPassword = process.env.VELAQ_APP_PASSWORD;
     // Hosts such as Neon refuse weak passwords, including the development one the first migration
     // uses. So when a hosted password is set, create the app role with it first; the migration then
     // finds the role and leaves it alone.
@@ -41,6 +51,7 @@ for (const plane of planes) {
       const exists = await client.query("SELECT 1 FROM pg_roles WHERE rolname = 'velaq_app'");
       if (!exists.rowCount) {
         await client.query(`CREATE ROLE velaq_app LOGIN PASSWORD ${client.escapeLiteral(appPassword)} NOSUPERUSER NOBYPASSRLS`);
+        console.log(`${plane}: created the velaq_app database user`);
       }
     }
     await migrate(drizzle(client), { migrationsFolder: folder, ...MIGRATIONS_TABLE });
