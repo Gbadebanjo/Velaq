@@ -122,3 +122,17 @@ describe("Savings goals", () => {
     expect(seen.rows[0]).toEqual({ g: 0, c: 0 });
   });
 });
+
+describe("Connection security", () => {
+  it("always asks for the strictest SSL mode, keeping everything else in the address", async () => {
+    const { strictSsl } = await import("../src/pg.js");
+    const neon = "postgresql://owner:p%40ss@ep-cool-1.eu-central-1.aws.neon.tech/velaq_personal?sslmode=require&channel_binding=require";
+    const out = new URL(strictSsl(neon));
+    expect(out.searchParams.get("sslmode")).toBe("verify-full");
+    expect(out.searchParams.get("channel_binding")).toBe("require");
+    expect(out.password).toBe("p%40ss");
+    expect(out.hostname).toBe("ep-cool-1.eu-central-1.aws.neon.tech");
+    expect(strictSsl("postgres://velaq_app:velaq_app@localhost:5432/velaq_personal")).toBe("postgres://velaq_app:velaq_app@localhost:5432/velaq_personal");
+    expect(new URL(strictSsl("postgres://a:b@h/db?sslmode=disable")).searchParams.get("sslmode")).toBe("disable");
+  });
+});

@@ -10,6 +10,7 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import pg from "pg";
 import { DATABASES, type Database, isDatabase, migrationsFolder } from "./index.js";
+import { strictSsl } from "./pg.js";
 
 export const MIGRATIONS_TABLE = { migrationsTable: "__migrations", migrationsSchema: "public" } as const;
 
@@ -41,7 +42,7 @@ for (const plane of planes) {
         "Add VELAQ_APP_PASSWORD to the service's environment (on Render, use Generate) and deploy again.",
     );
   }
-  const client = new pg.Client({ connectionString: url });
+  const client = new pg.Client({ connectionString: strictSsl(url) });
   await client.connect();
   try {
     // Hosts such as Neon refuse weak passwords, including the development one the first migration

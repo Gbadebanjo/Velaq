@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import { type NodePgDatabase, drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
+import { strictSsl } from "./pg.js";
 import * as business from "./schema/business.js";
 import * as personal from "./schema/personal.js";
 import { assertUuid } from "./index.js";
@@ -12,12 +13,12 @@ export type PersonalDb = NodePgDatabase<typeof personal>;
 
 /** Typed Drizzle client for velaq_business. Connect as velaq_app so row level security applies. */
 export function businessDb(connectionString: string): BusinessDb {
-  return drizzle(new pg.Pool({ connectionString }), { schema: business });
+  return drizzle(new pg.Pool({ connectionString: strictSsl(connectionString) }), { schema: business });
 }
 
 /** Typed Drizzle client for velaq_personal. Connect as velaq_app so row level security applies. */
 export function personalDb(connectionString: string): PersonalDb {
-  return drizzle(new pg.Pool({ connectionString }), { schema: personal });
+  return drizzle(new pg.Pool({ connectionString: strictSsl(connectionString) }), { schema: personal });
 }
 
 /** The transaction type a Drizzle database hands to its transaction callback. */

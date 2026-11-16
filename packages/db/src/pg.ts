@@ -6,9 +6,23 @@ import type { Queryable, TxRunner } from "./index.js";
 // which moved entries a day back and budgets a month back. Text is also what the test database returns.
 pg.types.setTypeParser(pg.types.builtins.DATE, (v: string) => v);
 
+/**
+ * Asks for the strictest encrypted connection: the server's certificate and name are both checked.
+ * Hosts like Neon hand out "sslmode=require", which pg treats as this today but will weaken to
+ * "encrypt without checking who the server is" in its next major version. Saying verify-full
+ * outright keeps the protection whatever the version, and stops pg's warning. Local databases
+ * without an sslmode are left alone.
+ */
+export function strictSsl(connectionString: string): string {
+  const u = new URL(connectionString);
+  const mode = u.searchParams.get("sslmode");
+  if (mode && ["prefer", "require", "verify-ca"].includes(mode)) u.searchParams.set("sslmode", "verify-full");
+  return u.toString();
+}
+
 /** Production adapter over a pg Pool. Use the velaq_app role, never a superuser, so row level security applies. */
 export function pgRunner(connectionString: string): TxRunner & { close(): Promise<void> } {
-  const pool = new pg.Pool({ connectionString });
+  const pool = new pg.Pool({ connectionString: strictSsl(connectionString) });
   return {
     query: (sql: string, params?: unknown[]) => pool.query(sql, params) as never,
     async transaction<T>(fn: (tx: Queryable) => Promise<T>): Promise<T> {
