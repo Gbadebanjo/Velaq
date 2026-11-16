@@ -33,7 +33,14 @@ export class ResendMailer implements Mailer {
       body: JSON.stringify({ from: this.from, to: [email.to], subject: email.subject, text: email.text, html: email.html }),
       signal: AbortSignal.timeout(10_000),
     });
-    if (!res.ok) throw new Error(`Resend refused the email (${res.status})`);
+    if (!res.ok) {
+      // Resend says why in its reply, e.g. "You can only send testing emails to your own email address".
+      const reason = await res
+        .json()
+        .then((b: { name?: string; message?: string }) => [b.name, b.message].filter(Boolean).join(": "))
+        .catch(() => "");
+      throw new Error(`Resend refused the email (${res.status})${reason ? `: ${reason}` : ""}`);
+    }
   }
 }
 

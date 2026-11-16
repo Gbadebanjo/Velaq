@@ -70,6 +70,7 @@ function toHttp(e: unknown): never {
     const body = { error: e.code, message: e.message };
     if (e.code === "rate_limited") throw new HttpException(body, HttpStatus.TOO_MANY_REQUESTS);
     if (e.code === "invalid_credentials") throw new UnauthorizedException(body);
+    if (e.code === "email_failed") throw new HttpException(body, HttpStatus.SERVICE_UNAVAILABLE);
     throw new BadRequestException(body);
   }
   if (e instanceof HttpException) throw e;

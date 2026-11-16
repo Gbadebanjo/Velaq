@@ -12,11 +12,16 @@ import { BREACH_CHECKER, type BreachChecker } from "../src/identity/breach.js";
 import { requestMeta } from "../src/identity/identity.controller.js";
 import { IdentityController } from "../src/identity/identity.controller.js";
 import { IDENTITY_CONFIG, IDENTITY_DB, IdentityService } from "../src/identity/identity.service.js";
-import { MAILER, type Email, type Mailer } from "../src/identity/mailer.js";
+import { MAILER, type Email, type Mailer, ResendMailer } from "../src/identity/mailer.js";
 
 class Inbox implements Mailer {
   sent: Email[] = [];
-  async send(e: Email) { this.sent.push(e); }
+  /** Set to make the next sends fail, as when the email provider refuses. */
+  failing = false;
+  async send(e: Email) {
+    if (this.failing) throw new Error("Resend refused the email (403): validation_error: You can only send testing emails to your own email address");
+    this.sent.push(e);
+  }
   lastCode(to: string): string {
     const mail = [...this.sent].reverse().find((m) => m.to === to && /\d{6}/.test(m.subject));
     return /(\d{6})/.exec(mail?.subject ?? "")?.[1] ?? "";
@@ -246,5 +251,39 @@ describe("client address", () => {
     expect(requestMeta(req, "k").ip).toBe("9.9.9.9");
     expect(requestMeta(req, "other").ip).toBe("1.1.1.1");
     expect(requestMeta(req, "").ip).toBe("1.1.1.1");
+  });
+});
+
+describe("when an email can't be sent", () => {
+  it("says so clearly instead of a server error, and logs the provider's reason without the address", async () => {
+    const logged: string[] = [];
+    const orig = console.error;
+    console.error = (m: unknown) => void logged.push(String(m));
+    inbox.failing = true;
+    try {
+      const r = await request(app.getHttpServer())
+        .post("/v1/auth/sign-up")
+        .send({ email: "nobody-gets-this@example.com", password: "a long enough passphrase", firstName: "Ada", lastName: "Okafor" })
+        .expect(503);
+      expect(r.body).toEqual({ error: "email_failed", message: "We couldn't send the email with your code just now. Try again in a few minutes." });
+      await request(app.getHttpServer()).post("/v1/auth/forgot-password").send({ email: "nobody-gets-this@example.com" }).expect((res) => expect([202, 503]).toContain(res.status));
+    } finally {
+      inbox.failing = false;
+      console.error = orig;
+    }
+    expect(logged.some((l) => l.includes("only send testing emails to your own email address"))).toBe(true);
+    expect(logged.join("\n")).not.toContain("nobody-gets-this@example.com");
+  });
+
+  it("reads Resend's reason from its reply", async () => {
+    const orig = globalThis.fetch;
+    globalThis.fetch = (async () =>
+      new Response(JSON.stringify({ name: "validation_error", message: "You can only send testing emails to your own email address" }), { status: 403 })) as typeof fetch;
+    try {
+      await expect(new ResendMailer("re_test", "Velaq <onboarding@resend.dev>").send({ to: "a@b.co", subject: "s", text: "t", html: "h" }))
+        .rejects.toThrow("Resend refused the email (403): validation_error: You can only send testing emails to your own email address");
+    } finally {
+      globalThis.fetch = orig;
+    }
   });
 });

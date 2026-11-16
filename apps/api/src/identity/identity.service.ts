@@ -12,7 +12,7 @@ import {
   safeEqual,
   verifyPassword,
 } from "./crypto.js";
-import { MAILER, type Mailer, emails } from "./mailer.js";
+import { type Email, MAILER, type Mailer, emails } from "./mailer.js";
 import { uuidv7 } from "./uuid.js";
 
 export const IDENTITY_DB = Symbol("IDENTITY_DB");
@@ -59,7 +59,7 @@ export interface RequestMeta {
 /** Errors the controller turns into HTTP responses. Messages are safe to show to users. */
 export class IdentityError extends Error {
   constructor(
-    readonly code: "rate_limited" | "invalid_credentials" | "invalid_code" | "breached_password",
+    readonly code: "rate_limited" | "invalid_credentials" | "invalid_code" | "breached_password" | "email_failed",
     message: string,
   ) {
     super(message);
@@ -106,7 +106,7 @@ export class IdentityService {
 
     const existing = await this.findAccount(email);
     if (existing?.email_verified_at) {
-      await this.mailer.send(emails.alreadyRegistered(email, existing.first_name));
+      await this.deliver(emails.alreadyRegistered(email, existing.first_name));
       await this.event(existing.id, "sign_up_existing", meta);
       return;
     }
@@ -293,7 +293,20 @@ export class IdentityService {
         [id, accountId, purpose, hashEmailCode(this.config.codeSecret, id, code), LIMITS.codeTtlMinutes],
       );
     });
-    await this.mailer.send(purpose === "verify_email" ? emails.verify(email, code, firstName) : emails.reset(email, code, firstName));
+    await this.deliver(purpose === "verify_email" ? emails.verify(email, code, firstName) : emails.reset(email, code, firstName));
+  }
+
+  /**
+   * Sends an email, turning a failure into a clear message for the person instead of a server error.
+   * The log keeps the provider's reason (never the address or the code) so it can be fixed.
+   */
+  private async deliver(email: Email): Promise<void> {
+    try {
+      await this.mailer.send(email);
+    } catch (e) {
+      console.error(`Email not sent: ${e instanceof Error ? e.message : String(e)}`);
+      throw new IdentityError("email_failed", "We couldn't send the email with your code just now. Try again in a few minutes.");
+    }
   }
 
   private async consumeCode(accountId: string, purpose: CodePurpose, code: string): Promise<boolean> {
